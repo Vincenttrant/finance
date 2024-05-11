@@ -90,24 +90,5 @@ def main():
     plt.tight_layout()
     plt.show()
 
-    # Streamlit
-    st.title('Financial Data Analysis')
-    st.write('This is a financial data analysis dashboard.')
-
-    st.header('Transaction Frequency by Month')
-
-    file = st.file_uploader("Upload your bank statement", type=["csv"])
-
-    print("file input: ", file)
-
-    if file is None:
-        st.write("Please upload a file")
-    else:
-        df = pd.read_csv(file)
-        st.write(df)
-
-
-
-
 if __name__ == "__main__":
     main()
