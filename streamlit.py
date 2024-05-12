@@ -21,7 +21,15 @@ def categorize_transaction(description):
 
 
 def main():
-    st.title('Financial Data Analysis')
+    st.set_page_config(page_title="Finance Dashboard", layout='wide')
+
+    with st.sidebar:
+        # create two buttons for the user to select 1. Dashboard 2. Future Output
+        st.title('Navigation :heavy_exclamation_mark:')
+        page = st.selectbox('Go to :car:', ['Finance Dashboard', 'Future Finance'])
+
+
+    st.title('Finance Dashboard  :chart_with_upwards_trend:')
 
     file = st.file_uploader("Upload your bank statement", type=["csv"])
 
@@ -34,78 +42,84 @@ def main():
         df['Date'] = pd.to_datetime(df['Date'])
         df['Running Bal.'] = df['Running Bal.'].replace({',': ''}, regex=True).astype(float)
 
-        st.dataframe(df)
+        st.subheader('Raw Data')
+        st.dataframe(df, use_container_width=True)
 
-        transaction_freq_by_month = df.groupby(df['Date'].dt.to_period('M')).size()
-        df_freq_by_month = pd.DataFrame({
-            'Date': transaction_freq_by_month.index.strftime('%y-%m'),
-            'Frequency': transaction_freq_by_month.values
-        })
+        col1, col2 = st.columns(2)
 
-        fig = px.bar(
-            df_freq_by_month,
-            x='Date',
-            y='Frequency',
-        )
+        with col1:
+            # Plotting a line plot of the running balance using Plotly
+            fig = px.line(
+                df,
+                x='Date',
+                y='Running Bal.',
+                color_discrete_sequence=px.colors.qualitative.Safe  ,
+            )
 
-        st.write('Transaction Frequency')
-        st.plotly_chart(fig)
-
-
+            st.subheader('Total Running Balance')
+            st.plotly_chart(fig, use_container_width=True, height=400)
 
 
-        # Plotting a pie chart of the spending categories using Plotly
-        spendingCategoriesTotal = {}
-        for category in categories.keys():
-            if df[df['Category'] == category]['Amount'].sum() < 0:
-                spendingCategoriesTotal[category] = -df[df['Category'] == category]['Amount'].sum()
+        with col2:
+            transaction_freq_by_month = df.groupby(df['Date'].dt.to_period('M')).size()
+            df_freq_by_month = pd.DataFrame({
+                'Date': transaction_freq_by_month.index.strftime('%y-%m'),
+                'Frequency': transaction_freq_by_month.values
+            })
 
-        fig = px.pie(
-            values=spendingCategoriesTotal.values(),
-            names=spendingCategoriesTotal.keys(),
-            color=spendingCategoriesTotal.keys(),
-            color_discrete_sequence=px.colors.qualitative.Safe
-        )
+            fig = px.bar(
+                df_freq_by_month,
+                x='Date',
+                y='Frequency',
+            )
 
-        st.write('Spending Categories')
-        st.plotly_chart(fig)
+            st.subheader('Transaction Frequency')
+            st.plotly_chart(fig, use_container_width=True, height=400)
 
-        # Plotting a line plot of the running balance using Plotly
-        fig = px.line(
-            df,
-            x='Date',
-            y='Running Bal.',
-            color_discrete_sequence=px.colors.qualitative.Safe
-        )
+        
+        st.markdown("---")
 
-        st.write('Total Running Balance')
-        st.plotly_chart(fig)
+        col1, col2 = st.columns([0.4,0.5])
 
-        # Plotting a line plot of the running totals for each category using Plotly
-        category_running_totals = {category: [] for category in categories.keys()}
-        running_totals = {category: 0 for category in categories.keys()}
-        for index, row in df.iterrows():
-            category = row['Category']
-            amount = row['Amount']
-            if amount < 0:
-                running_totals[category] += -amount
+        with col1:
+            # Plotting a pie chart of the spending categories using Plotly
+            spendingCategoriesTotal = {}
+            for category in categories.keys():
+                if df[df['Category'] == category]['Amount'].sum() < 0:
+                    spendingCategoriesTotal[category] = -df[df['Category'] == category]['Amount'].sum()
 
-            for key in category_running_totals.keys():
-                category_running_totals[key].append(running_totals[key])
+            fig = px.pie(
+                values=spendingCategoriesTotal.values(),
+                names=spendingCategoriesTotal.keys(),
+                color=spendingCategoriesTotal.keys(),
+                color_discrete_sequence=px.colors.qualitative.Safe
+            )
+
+            st.subheader('Spending Categories')
+            st.plotly_chart(fig, use_container_width=True)
+
+        with col2:
+            # Plotting a line plot of the running totals for each category using Plotly
+            category_running_totals = {category: [] for category in categories.keys()}
+            running_totals = {category: 0 for category in categories.keys()}
+            for index, row in df.iterrows():
+                category = row['Category']
+                amount = row['Amount']
+                if amount < 0:
+                    running_totals[category] += -amount
+
+                for key in category_running_totals.keys():
+                    category_running_totals[key].append(running_totals[key])
 
 
-        df_running_totals = pd.DataFrame(category_running_totals)
-        fig = px.line(
-            df_running_totals,
-            color_discrete_sequence=px.colors.qualitative.Safe
-        )
+            df_running_totals = pd.DataFrame(category_running_totals)
+            fig = px.line(
+                df_running_totals,
+                color_discrete_sequence=px.colors.qualitative.Safe
+            )
 
-        st.write('Running Totals for Each Category')
-        st.plotly_chart(fig)
-
-
-
-
+            st.subheader('Running Totals for Each Category')
+            st.plotly_chart(fig, use_container_width=True)
 
 if __name__ == "__main__":
     main()
