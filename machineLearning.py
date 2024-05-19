@@ -6,6 +6,7 @@ from sklearn.metrics import classification_report
 import plotly.express as px
 import streamlit as st
 from prophet import Prophet
+import matplotlib.pyplot as plt
 
 # manual categorization of transactions for training the model
 categories = {
@@ -85,7 +86,7 @@ def main():
 
     st.title(f'{page} :chart_with_upwards_trend:')
 
-    file = st.file_uploader("Upload your bank statement", type=["csv"])
+    file = st.file_uploader("Upload your bank :red[montly] statement", type=["csv"])
 
     if file is not None:
         df = pd.read_csv(file, skiprows=6)
@@ -204,6 +205,7 @@ def main():
             )
 
             st.subheader('Next Month Balance Forecast')
+            st.markdown(f'Your balance after 30 days is expected to be :red[${future_forecast["yhat"].iloc[-1]:.2f}]')
             st.plotly_chart(fig1, use_container_width=True)
 
             fig2 = model.plot_components(future_forecast)
