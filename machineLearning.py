@@ -6,6 +6,7 @@ from sklearn.metrics import classification_report
 import plotly.express as px
 import streamlit as st
 from prophet import Prophet
+import database
 import matplotlib.pyplot as plt
 
 # manual categorization of transactions for training the model
@@ -62,19 +63,20 @@ def machine_learning(data, data2):
 
 
 def main():
+
+    # Initialize the database
     # Add categorization to the data for testing model
-    data = pd.read_csv("Data/testData.csv", skiprows=6)
-    df = pd.DataFrame(data, columns=["Date", "Description", "Amount", "Running Bal."])
+    # data = pd.read_csv("Data/testData.csv", skiprows=6)
+    # df = pd.DataFrame(data, columns=["Date", "Description", "Amount", "Running_Bal"])
+    #
+    # df['Category'] = df['Description'].apply(categorize_transaction)
+    # df['Amount'] = df['Amount'].replace({',': ''}, regex=True).astype(float)
+    # df['Date'] = pd.to_datetime(df['Date'])
+    # df['Running_Bal'] = df['Running_Bal'].replace({',': ''}, regex=True).astype(float)
 
-    df['Category'] = df['Description'].apply(categorize_transaction)
-    df['Amount'] = df['Amount'].replace({',': ''}, regex=True).astype(float)
-    df['Date'] = pd.to_datetime(df['Date'])
-    df['Running Bal.'] = df['Running Bal.'].replace({',': ''}, regex=True).astype(float)
+    # database.save_transaction(df)
 
-    # Save the categorized data to a new CSV file (optional)
-    df.to_csv("Data/testCategorizedData.csv", index=False)
-
-    data = pd.read_csv("Data/testCategorizedData.csv")
+    data = database.load_transactions()
 
     st.set_page_config(page_title="Finance Dashboard", layout='wide')
 
@@ -92,10 +94,11 @@ def main():
         df = pd.read_csv(file, skiprows=6)
 
         machine_learning(data, df)
+
         # Apply categorization function to the Description column
         df['Amount'] = df['Amount'].replace({',': ''}, regex=True).astype(float)
         df['Date'] = pd.to_datetime(df['Date'])
-        df['Running Bal.'] = df['Running Bal.'].replace({',': ''}, regex=True).astype(float)
+        df['Running_Bal'] = df['Running_Bal'].replace({',': ''}, regex=True).astype(float)
 
         st.subheader('Raw Data')
         st.dataframe(df.iloc[1:], use_container_width=True)
@@ -108,7 +111,7 @@ def main():
                 fig = px.line(
                     df,
                     x='Date',
-                    y='Running Bal.',
+                    y='Running_Bal',
                     color_discrete_sequence=px.colors.qualitative.Safe,
                 )
 
@@ -118,7 +121,7 @@ def main():
             with col2:
                 transaction_freq_by_month = df.groupby(df['Date'].dt.to_period('M')).size()
                 df_freq_by_month = pd.DataFrame({
-                    'Date': transaction_freq_by_month.index.strftime('%y-%m'),
+                    'Date': transaction_freq_by_month.index.strftime('%B'),
                     'Frequency': transaction_freq_by_month.values
                 })
 
@@ -176,7 +179,7 @@ def main():
 
         elif page == 'Future Finance':
             # Prepare data for forecasting
-            df_forecast = df[['Date', 'Running Bal.']].rename(columns={'Date': 'ds', 'Running Bal.': 'y'})
+            df_forecast = df[['Date', 'Running_Bal']].rename(columns={'Date': 'ds', 'Running_Bal': 'y'})
 
             # Initialize and fit the Prophet model
             model = Prophet()
