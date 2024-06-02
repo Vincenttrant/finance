@@ -1,4 +1,9 @@
 import pandas as pd
+import matplotlib.pyplot as plt
+import nltk
+from nltk.corpus import stopwords
+from prophet.diagnostics import performance_metrics, cross_validation
+from prophet.plot import plot_cross_validation_metric, plot_components_plotly
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import make_pipeline
@@ -6,8 +11,10 @@ from sklearn.metrics import classification_report
 import plotly.express as px
 import streamlit as st
 from prophet import Prophet
+import re
 import database
-import matplotlib.pyplot as plt
+
+nltk.download('stopwords')
 
 # manual categorization of transactions for training the model
 categories = {
@@ -34,6 +41,18 @@ categories = {
 }
 
 
+def preprocess_text(text):
+    text = text.lower()
+    text = re.sub(r'[^\w\s]', '', text)
+
+    stop_words = set(stopwords.words('english'))
+
+    # Remove stopwords like 'the', 'and', 'is'...
+    text = ' '.join([word for word in text.split() if word not in stop_words])
+
+    return text
+
+
 def categorize_transaction(description):
     for category, keywords in categories.items():
         for keyword in keywords:
@@ -44,6 +63,10 @@ def categorize_transaction(description):
 
 # automated categorization of transactions using the trained model (Naive Bayes classifier)
 def machine_learning(data, data2):
+    # Preprocess the text data
+    data['Description'] = data['Description'].apply(preprocess_text)
+    data2['Description'] = data2['Description'].apply(preprocess_text)
+
     # Training data
     X_train = data['Description']
     y_train = data['Category']
@@ -63,7 +86,6 @@ def machine_learning(data, data2):
 
 
 def main():
-
     # Initialize the database
     # Add categorization to the data for testing model
     # data = pd.read_csv("Data/testData.csv", skiprows=6)
@@ -181,14 +203,23 @@ def main():
             # Prepare data for forecasting
             df_forecast = df[['Date', 'Running_Bal']].rename(columns={'Date': 'ds', 'Running_Bal': 'y'})
 
+
             # Initialize and fit the Prophet model
-            model = Prophet()
+            model = Prophet(
+                changepoint_prior_scale=0.1,
+                # seasonality_mode='multiplicative',
+                # seasonality_prior_scale=2,
+                holidays_prior_scale=10,
+                daily_seasonality=True,
+                weekly_seasonality=True,
+                yearly_seasonality=False
+            )
             model.fit(df_forecast)
 
             # Create future dates dataframe
-            future_dates = model.make_future_dataframe(periods=30)  # Forecast for the next 30 days
+            future_dates = model.make_future_dataframe(periods=30)
 
-            # Predict future values
+
             forecast = model.predict(future_dates)
 
             # Adjust the forecast to replace any negative values with the last non-negative value
@@ -207,11 +238,12 @@ def main():
                 y='yhat'
             )
 
+            # Plotting the forecast and components using Plotly
             st.subheader('Next Month Balance Forecast')
             st.markdown(f'Your balance after 30 days is expected to be :red[${future_forecast["yhat"].iloc[-1]:.2f}]')
             st.plotly_chart(fig1, use_container_width=True)
 
-            fig2 = model.plot_components(future_forecast)
+            fig2 = plot_components_plotly(model, future_forecast)
             st.subheader('Forecast Components')
             st.plotly_chart(fig2, use_container_width=True)
 
