@@ -134,7 +134,7 @@ streamlit run machineLearning.py
 
 ### **STAR Interview Format**
 **S – Situation:**  
-While tracking my own expenses, I noticed that most bank statements have messy, inconsistent descriptions, and manually categorizing them is time-consuming. I also found that most budgeting tools focus on historical data but don’t give actionable forecasts.  
+I wanted to improve how I tracked my future expenses to budget more effectively, but I found that most bank statements had messy, inconsistent transaction descriptions that made it hard to quickly understand where my money was going. Existing budgeting tools only gave a backward-looking view of spending, without offering accurate, forward-looking forecasts to help plan ahead.
 
 **T – Task:**  
 I set out to build an interactive tool that would:
